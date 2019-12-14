@@ -20,6 +20,6 @@ Default user : admin
 
 Default password can be set by the value : .Values.setDefaultUser.user.password
 
-
+## Install Prometheus
 
 
