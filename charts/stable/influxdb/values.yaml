@@ -54,7 +54,7 @@ persistence:
   # storageClass: "-"
   annotations:
   accessMode: ReadWriteOnce
-  size: 8Gi
+  size: 10Gi
 
 ## Create default user through Kubernetes job
 ## Defaults indicated below
