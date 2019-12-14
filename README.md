@@ -44,3 +44,10 @@ Default Data Source can be configured by the value : .Values.datasources.datasou
 
 Or Data Source can be added by Grafana interface.
 
+
+## To-Do
+
+- Configure retention time in InfluxDB
+- Secret management 
+- ...
+
