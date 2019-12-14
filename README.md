@@ -49,5 +49,7 @@ Or Data Source can be added by Grafana interface.
 
 - Configure retention time in InfluxDB
 - Secret management 
+- Resource Allocation
+- Scrape Configuration
 - ...
 
