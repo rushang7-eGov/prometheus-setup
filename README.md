@@ -34,3 +34,13 @@ remote_read.url : "http://influxdb.monitoring:8086/api/v1/prom/read?db=\<db-name
 `helm install charts/stable/prometheus/ --name prometheus --namespace monitoring`
 
 
+## Install Grafana
+
+`helm install charts/stable/grafana --name grafana --namespace monitoring`
+
+Default password can be set by the value : .Values.adminPassword
+
+Default Data Source can be configured by the value : .Values.datasources.datasources.yml.datasources.url: http://prometheus-prometheus-server
+
+Or Data Source can be added by Grafana interface.
+
