@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka-minion.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "kafka-minion.name" . }}
+    helm.sh/chart: {{ include "kafka-minion.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "kafka-minion.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.telemetry.port | quote }}
+        prometheus.io/path: "/metrics"
+      labels:
+        app.kubernetes.io/name: {{ include "kafka-minion.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{ toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      volumes:
+      {{- if .Values.kafka.tls.enabled }}
+      - name: tls-certs
+        secret:
+          secretName: {{ template "kafka-minion.tlsSecretName" . }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- if .Values.containerSecurityContext }}
+          securityContext:
+            {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- end }} 
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+          {{- if .Values.kafka.tls.enabled }}
+          - name: tls-certs
+            mountPath: "/etc/kafka-secrets"
+            readOnly: true
+          {{- end }}
+          env:
+            - name: TELEMETRY_HOST
+              value: {{ .Values.telemetry.host | quote }}
+            - name: TELEMETRY_PORT
+              value: {{ .Values.telemetry.port | quote }}
+            - name: EXPORTER_IGNORE_SYSTEM_TOPICS
+              value: {{ .Values.exporter.ignoreSystemTopics | quote }}
+            - name: METRICS_PREFIX
+              value: {{ .Values.exporter.metricsPrefix | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: KAFKA_BROKERS
+              value: {{ required "A valid entry for kafka.brokers is required" .Values.kafka.brokers | quote }}
+            - name: KAFKA_CONSUMER_OFFSETS_TOPIC_NAME
+              value: {{ .Values.kafka.consumerOffsetsTopic | quote }}
+            {{- if .Values.kafka.sasl.enabled }}
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ template "kafka-minion.saslSecretName" . }}"
+                  key: username
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ template "kafka-minion.saslSecretName" . }}"
+                  key: password
+            - name: KAFKA_SASL_USE_HANDSHAKE
+              value: {{ .Values.kafka.sasl.useHandshake | quote }}
+            {{- end }}
+            - name: KAFKA_TLS_ENABLED
+              value: {{ .Values.kafka.tls.enabled | quote }}
+            {{- if .Values.kafka.tls.enabled }}
+            - name: KAFKA_TLS_CA_FILE_PATH
+              value: /etc/kafka-secrets/tls.ca
+            - name: KAFKA_TLS_KEY_FILE_PATH
+              value: /etc/kafka-secrets/tls.key
+            - name: KAFKA_TLS_CERT_FILE_PATH
+              value: /etc/kafka-secrets/tls.crt
+            - name: KAFKA_TLS_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ template "kafka-minion.tlsSecretName" . }}"
+                  key: passphrase
+            - name: KAFKA_TLS_INSECURE_SKIP_TLS_VERIFY
+              value: {{ .Values.kafka.tls.insecureSkipTlsVerify | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.telemetry.port }}
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            httpGet:
+              path: /healthcheck
+              port: http
+          readinessProbe:
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            httpGet:
+              path: /readycheck
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
