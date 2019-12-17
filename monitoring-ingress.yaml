@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: routes
+  namespace: monitoring-test
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/app-root: /citizen    
+    nginx.ingress.kubernetes.io/lua-resty-waf: "active"  
+    nginx.ingress.kubernetes.io/lua-resty-waf-debug: "true"
+    nginx.ingress.kubernetes.io/lua-resty-waf-score-threshold: "10"
+    nginx.ingress.kubernetes.io/lua-resty-waf-allow-unknown-content-types: "true"
+    nginx.ingress.kubernetes.io/lua-resty-waf-process-multipart-body: "false"    
+    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+  - host: "egov-micro-qa.egovernments.org"
+    http:
+      paths:
+      - backend:
+          serviceName: grafana
+          servicePort: 80
+        path: /grafana
