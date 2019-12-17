@@ -803,13 +803,13 @@ server:
   ## Prometheus server resource requests and limits
   ## Ref: http://kubernetes.io/docs/user-guide/compute-resources/
   ##
-  resources: {}
-    # limits:
-    #   cpu: 500m
-    #   memory: 512Mi
-    # requests:
-    #   cpu: 500m
-    #   memory: 512Mi
+  resources: 
+    limits:
+      # cpu: 500m
+      memory: 1Gi
+    requests:
+      # cpu: 500m
+      memory: 512Mi
 
   ## Security context to be added to server pods
   ##
@@ -1053,10 +1053,10 @@ serverFiles:
   prometheus.yml:
 
     remote_write:
-    - url: "http://influxdb.monitoring:8086/api/v1/prom/write?db=prometheus&u=admin&p=admin"
+    - url: "http://influxdb.monitoring-test:8086/api/v1/prom/write?db=prometheus&u=admin&p=admin"
 
     remote_read:
-    - url: "http://influxdb.monitoring:8086/api/v1/prom/read?db=prometheus&u=admin&p=admin"
+    - url: "http://influxdb.monitoring-test:8086/api/v1/prom/read?db=prometheus&u=admin&p=admin"
     
     rule_files:
       - /etc/config/rules

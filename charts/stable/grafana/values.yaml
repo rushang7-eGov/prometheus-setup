@@ -139,13 +139,13 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources: {}
-#  limits:
-#    cpu: 100m
-#    memory: 128Mi
-#  requests:
-#    cpu: 100m
-#    memory: 128Mi
+resources: 
+ limits:
+   cpu: 100m
+   memory: 128Mi
+ requests:
+   cpu: 100m
+   memory: 128Mi
 
 ## Node labels for pod assignment
 ## ref: https://kubernetes.io/docs/user-guide/node-selection/
@@ -224,7 +224,7 @@ initChownData:
 
 # Administrator credentials when not using an existing secret (see below)
 adminUser: admin
-# adminPassword: strongpassword
+adminPassword: admin
 
 # Use an existing secret for the admin user.
 admin:

@@ -85,7 +85,7 @@ setDefaultUser:
     ## User password
     ## single quotes must be escaped (\')
     ## Default: (Randomly generated 10 characters of AlphaNum)
-    # password:
+    password: "admin"
 
     ## User privileges
     ## Default: "WITH ALL PRIVILEGES"
@@ -93,13 +93,13 @@ setDefaultUser:
 
 ## Configure resource requests and limits
 ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
-resources: {}
-#  requests:
-#    memory: 256Mi
-#    cpu: 0.1
-#  limits:
-#    memory: 16Gi
-#    cpu: 8
+resources: 
+ requests:
+   memory: 512Mi
+  #  cpu: 0.1
+ limits:
+   memory: 2Gi
+  #  cpu: 8
 
 # Annotations to be added to InfuxDB pods
 podAnnotations: {}

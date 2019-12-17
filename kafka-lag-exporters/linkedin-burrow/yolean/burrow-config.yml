@@ -1,32 +1,32 @@
 kind: ConfigMap
 metadata:
   name: burrow-config
-  namespace: kafka-cluster
+  namespace: monitoring-test
 apiVersion: v1
 data:
   burrow.toml: |-
     [zookeeper]
-    servers=[ "kafka-cluster-cp-zookeeper-headless:2181" ]
+    servers=[ "zookeeper-v2-headless.zookeeper-cluster:2181" ]
     timeout=6
     root-path="/burrow"
 
     [cluster.local]
     class-name="kafka"
-    servers=[ "kafka-cluster-cp-kafka-headless:9092" ]
+    servers=[ "kafka-v2-headless.kafka-cluster:9092" ]
     topic-refresh=60
     offset-refresh=30
 
     [consumer.local]
     class-name="kafka"
     cluster="local"
-    servers=[ "kafka-cluster-cp-kafka-headless:9092" ]
+    servers=[ "kafka-v2-headless.kafka-cluster:9092" ]
     group-blacklist=""
     group-whitelist=""
 
     [consumer.local_zk]
     class-name="kafka_zk"
     cluster="local"
-    servers=[ "kafka-cluster-cp-zookeeper-headless:2181" ]
+    servers=[ "zookeeper-v2-headless.zookeeper-cluster:2181" ]
     zookeeper-path="/local"
     zookeeper-timeout=30
     group-blacklist=""

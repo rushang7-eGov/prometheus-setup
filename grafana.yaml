@@ -1,0 +1,433 @@
+---
+# Source: grafana/templates/podsecuritypolicy.yaml
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    # Default set from Docker, without DAC_OVERRIDE or CHOWN
+    - FOWNER
+    - FSETID
+    - KILL
+    - SETGID
+    - SETUID
+    - SETPCAP
+    - NET_BIND_SERVICE
+    - NET_RAW
+    - SYS_CHROOT
+    - MKNOD
+    - AUDIT_WRITE
+    - SETFCAP
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+---
+# Source: grafana/templates/tests/test-podsecuritypolicy.yaml
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: grafana-test
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+spec:
+  allowPrivilegeEscalation: true
+  privileged: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  fsGroup:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - projected
+  - secret
+---
+# Source: grafana/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: grafana
+    heritage: Helm
+type: Opaque
+data:
+  admin-user: "YWRtaW4="
+  admin-password: "YWRtaW4="
+  ldap-toml: ""
+---
+# Source: grafana/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: grafana
+    heritage: Helm
+data:
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+    [grafana_net]
+    url = https://grafana.net
+    [log]
+    mode = console
+    [paths]
+    data = /var/lib/grafana/data
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+---
+# Source: grafana/templates/tests/test-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-test
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: "grafana-4.0.3"
+    heritage: "Helm"
+    release: "grafana"
+data:
+  run.sh: |-
+    @test "Test Health" {
+      url="http://grafana/api/health"
+
+      code=$(curl -s -o /dev/null -I -w "%{http_code}" $url)
+      [ "$code" == "200" ]
+    }
+---
+# Source: grafana/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+  name: grafana
+  namespace: monitoring-test
+---
+# Source: grafana/templates/tests/test-serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+  name: grafana-test
+  namespace: monitoring-test
+---
+# Source: grafana/templates/clusterrole.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: grafana
+    heritage: Helm
+  name: grafana-clusterrole
+rules: []
+---
+# Source: grafana/templates/clusterrolebinding.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: grafana-clusterrolebinding
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: grafana
+    heritage: Helm
+subjects:
+  - kind: ServiceAccount
+    name: grafana
+    namespace: monitoring-test
+roleRef:
+  kind: ClusterRole
+  name: grafana-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: grafana/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+rules:
+- apiGroups:      ['extensions']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [grafana]
+---
+# Source: grafana/templates/tests/test-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana-test
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+rules:
+- apiGroups:      ['policy']
+  resources:      ['podsecuritypolicies']
+  verbs:          ['use']
+  resourceNames:  [grafana-test]
+---
+# Source: grafana/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana
+subjects:
+- kind: ServiceAccount
+  name: grafana
+  namespace: monitoring-test
+---
+# Source: grafana/templates/tests/test-rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-test
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    heritage: Helm
+    release: grafana
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana-test
+subjects:
+- kind: ServiceAccount
+  name: grafana-test
+  namespace: monitoring-test
+---
+# Source: grafana/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: grafana
+    heritage: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - name: service
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+
+  selector:
+    app: grafana
+    release: grafana
+---
+# Source: grafana/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring-test
+  labels:
+    app: grafana
+    chart: grafana-4.0.3
+    release: grafana
+    heritage: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+      release: grafana
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: grafana
+        release: grafana
+      annotations:
+        checksum/config: 95943d05316044cb3bc72229d0c5553b9176a968781a475000906ec95d6b0c34
+        checksum/dashboards-json-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/sc-dashboard-provider-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/secret: 9ad60d3cda707ab54a77f6dcf6d1e95b56d16fb59fbf1b79db7cb8cfef2b5a9f
+    spec:
+      
+      serviceAccountName: grafana
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+      containers:
+        - name: grafana
+          image: "grafana/grafana:6.4.2"
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: storage
+              mountPath: "/var/lib/grafana"
+          ports:
+            - name: service
+              containerPort: 80
+              protocol: TCP
+            - name: grafana
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: grafana
+                  key: admin-user
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana
+                  key: admin-password
+          livenessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: grafana
+        - name: storage
+          emptyDir: {}
+---
+# Source: grafana/templates/tests/test.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: grafana-test
+  labels:
+    app: grafana
+    chart: "grafana-4.0.3"
+    heritage: "Helm"
+    release: "grafana"
+  annotations:
+    "helm.sh/hook": test-success
+  namespace: monitoring-test
+spec:
+  serviceAccountName: grafana-test
+  initContainers:
+    - name: test-framework
+      image: "dduportal/bats:0.4.0"
+      command:
+      - "bash"
+      - "-c"
+      - |
+        set -ex
+        # copy bats to tools dir
+        cp -R /usr/local/libexec/ /tools/bats/
+      volumeMounts:
+      - mountPath: /tools
+        name: tools
+  containers:
+    - name: grafana-test
+      image: "dduportal/bats:0.4.0"
+      command: ["/tools/bats/bats", "-t", "/tests/run.sh"]
+      volumeMounts:
+        - mountPath: /tests
+          name: tests
+          readOnly: true
+        - mountPath: /tools
+          name: tools
+  volumes:
+  - name: tests
+    configMap:
+      name: grafana-test
+  - name: tools
+    emptyDir: {}
+  restartPolicy: Never
